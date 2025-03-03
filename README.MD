@@ -29,8 +29,8 @@ return {
       api_key = "your-grok-api-key", -- Replace with your xAI Grok API key
       useOllama = false,             -- Set to true to use Ollama instead of Grok
       model = "grok-2-latest",       -- Specify the model to use
-      ollama_endpoint = "http://localhost:11434", -- Ollama API endpoint
-      grok_endpoint = "https://api.xai.dev/v1/chat/completions", -- Grok API endpoint
+      ollama_url = "http://localhost:11434", -- Ollama API endpoint
+      grok_url = "https://api.xai.dev/v1/chat/completions", -- Grok API endpoint
     })
   end,
 }
