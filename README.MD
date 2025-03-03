@@ -1,6 +1,6 @@
-# Wingman.nvim
+# Wingman
 
-**Wingman.nvim** is a Neovim plugin that provides intelligent code completion suggestions using either the Grok API (from xAI) or a local Ollama instance. It displays suggestions as virtual text in your buffer and allows you to accept them with a single keypress. Designed for seamless integration with LazyVim, Wingman aims to enhance your coding workflow with minimal setup.
+**Wingman** is a Neovim plugin that provides intelligent code completion suggestions using either the Grok API (from xAI) or a local Ollama instance. It displays suggestions as virtual text in your buffer and allows you to accept them with a single keypress. Designed for seamless integration with LazyVim, Wingman aims to enhance your coding workflow with minimal setup.
 
 ## Features
 
