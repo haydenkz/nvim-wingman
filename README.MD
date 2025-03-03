@@ -30,7 +30,7 @@ return {
       useOllama = false,             -- Set to true to use Ollama instead of Grok
       model = "grok-2-latest",       -- Specify the model to use
       ollama_url = "http://localhost:11434", -- Ollama API endpoint
-      grok_url = "https://api.xai.dev/v1/chat/completions", -- Grok API endpoint
+      grok_url = "https://api.x.ai/v1/chat/completions", -- Grok API endpoint
     })
   end,
 }
