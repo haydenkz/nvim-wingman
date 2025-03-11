@@ -1,33 +1,33 @@
-local M = {}
+local M = {
+}
 
 -- Default configuration
 M.config = {
-  useOllama = false,                            -- Set to true for Ollama, false for Grok
-  ollama_url = "http://localhost:11434/api/generate", -- Ollama endpoint
-  grok_url = "https://api.x.ai/v1/chat/completions", -- Grok endpoint
-  api_key = "",                                 -- API key for Grok (required if useOllama = false)
-  model = "grok-2-latest",                      -- Model (e.g., "llama3.2" for Ollama, "grok-2-latest" for Grok)
-  show_suggestions = true,                      -- Toggle suggestions on/off
-  auto_trigger = true,                          -- Enable automatic completion
-  trigger_threshold = 3,                        -- Min characters to trigger completion
-  temperature = 0.7,                            -- Controls creativity (lower for less repetition)
-  max_tokens = 300,                             -- Limits output length
-  keymaps = { accept = "<Tab>" },               -- Keymap to accept suggestions
+  useOllama = false,
+  ollama_url = "http://localhost:11434/api/generate",
+  grok_url = "https://api.x.ai/v1/chat/completions",
+  api_key = "",
+  model = "grok-2-latest",
+  show_suggestions = true,
+  auto_trigger = true,
+  trigger_threshold = 3,
+  temperature = 0.7,
+  max_tokens = 300,
+  keymaps = { accept = "<Tab>" },
 }
 
--- State management (internal, not exposed to users)
+-- State management 
 local state = {
-  suggestion_text = nil,                        -- Current suggestion text
-  suggestion_virt_text_id = nil,                -- ID of virtual text
-  timer = nil,                                 -- Debounce timer
-  prompt_in_progress = false,                  -- Prevent concurrent requests
-  latest_request_id = 0,                       -- Track latest request
+  suggestion_text = nil,
+  suggestion_virt_text_id = nil,
+  timer = nil,
+  prompt_in_progress = false,
+  latest_request_id = 0,
 }
 
--- Namespace for virtual text
 local ns_id = vim.api.nvim_create_namespace("wingman")
 
--- Clear current suggestion
+-- clear_suggestion() and show_suggestion()
 local function clear_suggestion()
   if state.suggestion_virt_text_id then
     pcall(vim.api.nvim_buf_del_extmark, 0, ns_id, state.suggestion_virt_text_id)
@@ -36,7 +36,6 @@ local function clear_suggestion()
   state.suggestion_text = nil
 end
 
--- Show suggestion as virtual text
 local function show_suggestion(text, line, col, request_id)
   if request_id ~= state.latest_request_id then return end
   clear_suggestion()
@@ -68,34 +67,47 @@ local function show_suggestion(text, line, col, request_id)
   end)
 end
 
--- Get context around cursor
+-- Modified get_context to include following text
 local function get_context()
   local cursor = vim.api.nvim_win_get_cursor(0)
   local line = cursor[1]
   local col = cursor[2]
+  
+  -- Get current line
   local current_line = vim.api.nvim_buf_get_lines(0, line - 1, line, false)[1] or ""
   col = math.min(col, #current_line)
+  
+  -- Get previous context (up to 10 lines before)
   local start_line = math.max(1, line - 10)
   local prev_lines = vim.api.nvim_buf_get_lines(0, start_line - 1, line - 1, false)
-  local context = table.concat(prev_lines, "\n")
-  if #context > 0 then context = context .. "\n" end
-  context = context .. string.sub(current_line, 1, col)
-  return context, line, col
+  local prev_context = table.concat(prev_lines, "\n")
+  if #prev_context > 0 then prev_context = prev_context .. "\n" end
+  prev_context = prev_context .. string.sub(current_line, 1, col)
+  
+  -- Get following context (up to 10 lines after)
+  local end_line = math.min(line + 10, vim.api.nvim_buf_line_count(0))
+  local following_lines = vim.api.nvim_buf_get_lines(0, line - 1, end_line, false)
+  local following_context = table.concat(following_lines, "\n")
+  following_context = string.sub(following_context, col + 1)
+  
+  return prev_context, following_context, line, col
 end
 
--- Request completion from API
+-- Modified request_completion to include following context
 local function request_completion()
   if not M.config.show_suggestions or state.prompt_in_progress then return end
 
   state.latest_request_id = state.latest_request_id + 1
   local request_id = state.latest_request_id
 
-  local context, line, col = get_context()
-  if #context < M.config.trigger_threshold then return end
+  local prev_context, following_context, line, col = get_context()
+  if #prev_context < M.config.trigger_threshold then return end
 
   local filetype = vim.bo.filetype
-  local system_prompt = "You are a coding assistant. Your task is to provide code completions that continue the given snippet without repeating the existing code."
-  local user_prompt = "Continue this " .. filetype .. " snippet starting from where it ends. Do not repeat any of the existing code. Only provide the new code that follows:\n```\n" .. context .. "\n```"
+  local system_prompt = "You are a coding assistant. Your task is to provide code completions that continue the given snippet without repeating the existing code that comes either before or after the insertion point."
+  local user_prompt = "Continue this " .. filetype .. " snippet starting from where the previous code ends. Do not repeat any of the existing code that comes before or after. Only provide new code that fits logically between the previous and following code:\n" ..
+    "Previous code:\n```\n" .. prev_context .. "\n```\n" ..
+    "Following code:\n```\n" .. following_context .. "\n```"
 
   state.prompt_in_progress = true
   local url = M.config.useOllama and M.config.ollama_url or M.config.grok_url
@@ -105,7 +117,7 @@ local function request_completion()
       model = M.config.model,
       prompt = system_prompt .. "\n" .. user_prompt,
       temperature = M.config.temperature,
-      num_predict = M.config.max_tokens,  -- Ollama's equivalent of max_tokens
+      num_predict = M.config.max_tokens,
       stream = false,
     })
   else
@@ -158,7 +170,7 @@ local function request_completion()
   })
 end
 
--- Accept suggestion and insert into buffer
+-- accept_suggestion(), setup_autocommands_and_keymaps(), setup_commands(), and M.setup() 
 local function accept_suggestion()
   if not state.suggestion_text then return end
 
@@ -174,7 +186,6 @@ local function accept_suggestion()
   clear_suggestion()
 end
 
--- Setup autocommands and keymaps
 local function setup_autocommands_and_keymaps()
   local group = vim.api.nvim_create_augroup("Wingman", { clear = true })
 
@@ -208,7 +219,6 @@ local function setup_autocommands_and_keymaps()
   end, { expr = true })
 end
 
--- Setup user commands
 local function setup_commands()
   vim.api.nvim_create_user_command("WingmanToggle", function()
     M.config.show_suggestions = not M.config.show_suggestions
@@ -218,22 +228,15 @@ local function setup_commands()
   vim.api.nvim_create_user_command("WingmanComplete", request_completion, {})
 end
 
--- Public setup function to initialize the plugin with user options
 function M.setup(opts)
-  -- Merge user options with defaults
   M.config = vim.tbl_deep_extend("force", M.config, opts or {})
-
-  -- Validate required options
   if not M.config.useOllama and M.config.api_key == "" then
     vim.notify("Wingman: API key is required when useOllama is false", vim.log.levels.WARN)
   end
-
-  -- Initialize the plugin
   setup_autocommands_and_keymaps()
   setup_commands()
 end
 
--- Expose request_completion for manual use if needed
 M.request_completion = request_completion
 
 return M
