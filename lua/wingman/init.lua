@@ -12,7 +12,7 @@ M.config = {
   auto_trigger = true,
   trigger_threshold = 3,
   temperature = 0.7,
-  max_tokens = 300,
+  max_tokens = 1000,
   keymaps = { accept = "<Tab>" },
 }
 
@@ -77,15 +77,15 @@ local function get_context()
   local current_line = vim.api.nvim_buf_get_lines(0, line - 1, line, false)[1] or ""
   col = math.min(col, #current_line)
   
-  -- Get previous context (up to 10 lines before)
-  local start_line = math.max(1, line - 10)
+  -- Get previous context (up to 100 lines before)
+  local start_line = math.max(1, line - 100)
   local prev_lines = vim.api.nvim_buf_get_lines(0, start_line - 1, line - 1, false)
   local prev_context = table.concat(prev_lines, "\n")
   if #prev_context > 0 then prev_context = prev_context .. "\n" end
   prev_context = prev_context .. string.sub(current_line, 1, col)
   
   -- Get following context (up to 10 lines after)
-  local end_line = math.min(line + 10, vim.api.nvim_buf_line_count(0))
+  local end_line = math.min(line + 100, vim.api.nvim_buf_line_count(0))
   local following_lines = vim.api.nvim_buf_get_lines(0, line - 1, end_line, false)
   local following_context = table.concat(following_lines, "\n")
   following_context = string.sub(following_context, col + 1)
