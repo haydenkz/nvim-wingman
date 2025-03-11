@@ -104,7 +104,7 @@ local function request_completion()
   if #prev_context < M.config.trigger_threshold then return end
 
   local filetype = vim.bo.filetype
-  local system_prompt = "You are a coding assistant. Your task is to provide code completions that continue the given snippet without repeating the existing code that comes either before or after the insertion point."
+  local system_prompt = "You are a coding assistant. Your task is to provide code completions that continue the given snippet without repeating the existing code that comes either before or after the insertion point. Do not generate anything other than the code, do not use markdown, just plaintext code."
   local user_prompt = "Continue this " .. filetype .. " snippet starting from where the previous code ends. Do not repeat any of the existing code that comes before or after. Only provide new code that fits logically between the previous and following code:\n" ..
     "Previous code:\n```\n" .. prev_context .. "\n```\n" ..
     "Following code:\n```\n" .. following_context .. "\n```"
