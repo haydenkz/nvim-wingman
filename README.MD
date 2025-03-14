@@ -21,7 +21,7 @@ Add the following to your LazyVim configuration (typically in `~/.config/nvim/lu
 
 ```lua
 return {
-  "haydenzeller/nvim-wingman",
+  "haydenkz/nvim-wingman",
   lazy = false, -- Load immediately (recommended for real-time suggestions)
   dependencies = { "nvim-lua/plenary.nvim" }, -- Required for HTTP requests
   config = function()
